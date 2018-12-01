@@ -36,7 +36,7 @@ public final class CommandProvider {
 
     static {
         try {
-            address = InetAddress.getByName("192.168.43.5");
+            address = InetAddress.getByName("localhost");
         } catch (UnknownHostException ignored) {}
         port = 3345;
     }

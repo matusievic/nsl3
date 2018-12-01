@@ -2,6 +2,10 @@ package nc.client.command.impl;
 
 import nc.client.command.ClientCommand;
 import nc.client.command.CommandProvider;
+import nc.util.BitOps;
+import nc.util.Operations;
+import nc.util.PacketConf;
+import nc.util.Types;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -30,27 +34,28 @@ public class DownloadCommand implements ClientCommand {
             return;
         }
 
-        byte[] data = new byte[200];
+        byte[] data = new byte[PacketConf.size];
         DatagramPacket packet = new DatagramPacket(data, 0, data.length);
-        Files.createFile(Paths.get("lab-2/client" + File.separator + fileName));
-        output = new FileOutputStream("lab-2/client" + File.separator + fileName, true);
+        Files.createFile(Paths.get("client" + File.separator + fileName));
+        output = new FileOutputStream("client" + File.separator + fileName, true);
 
         int length;
         while (true) {
             client.receive(packet);
             byte[] header = packet.getData();
-            short current = (short) (header[1] << 8 | header[2]);
-            short total = (short) (header[3] << 8 | header[4]);
+            short current = BitOps.byteToShort(Arrays.copyOfRange(header, PacketConf.currentOffset, PacketConf.currentOffset + 2));
+            short total = BitOps.byteToShort(Arrays.copyOfRange(header, PacketConf.totalOffset, PacketConf.totalOffset + 2));
 
-            output.write(Arrays.copyOfRange(header, 6, 6 + header[5]));
+            short count = BitOps.byteToShort(Arrays.copyOfRange(header, PacketConf.countOffset, PacketConf.countOffset + 2));
+            output.write(Arrays.copyOfRange(header, PacketConf.payloadOffset, PacketConf.payloadOffset + count));
 
-            header[0] = 5;
+            header[PacketConf.typeOffset] = Types.ACKNOWLEDGE;
             DatagramPacket ack = new DatagramPacket(header, 0, header.length, CommandProvider.address, CommandProvider.port);
             client.send(ack);
 
             System.out.println("\treceiving " + current + " / " + total);
             if (current >= total) {
-                length = total * 126;
+                length = total * PacketConf.payloadSize;
                 break;
             }
         }
@@ -61,16 +66,17 @@ public class DownloadCommand implements ClientCommand {
     }
 
     private DatagramPacket createInitPacket() {
-        byte[] initData = new byte[200];
-        initData[0] = 3;
+        byte[] initData = new byte[PacketConf.size];
+        initData[PacketConf.operationOffset] = Operations.DOWNLOAD;
         System.arraycopy((fileName + "\n").getBytes(), 0, initData, 6, fileName.length() + 1);
-        return new DatagramPacket(initData, 200, CommandProvider.address, CommandProvider.port);
+        return new DatagramPacket(initData, initData.length, CommandProvider.address, CommandProvider.port);
     }
 
     private boolean isFleExist(DatagramSocket client) throws IOException {
-        byte[] buf = new byte[200];
-        DatagramPacket packet = new DatagramPacket(buf, 200);
+        byte[] buf = new byte[PacketConf.size];
+        DatagramPacket packet = new DatagramPacket(buf, buf.length);
         client.receive(packet);
-        return packet.getData()[0] != 7;
+        client.receive(packet);
+        return packet.getData()[PacketConf.operationOffset] != Operations.ERROR;
     }
 }

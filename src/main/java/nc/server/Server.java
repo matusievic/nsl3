@@ -1,6 +1,7 @@
 package nc.server;
 
 import nc.server.command.CommandProvider;
+import nc.server.util.UploadQueue;
 import nc.util.BitOps;
 import nc.util.PacketConf;
 import nc.util.Types;
@@ -9,6 +10,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +22,7 @@ public final class Server {
     private CommandProvider provider;
     private DatagramSocket server;
     private DatagramPacket packet;
+    private UploadQueue uploadQueue;
     private boolean interrupted;
     private int port;
 
@@ -34,15 +37,22 @@ public final class Server {
     public void run() throws IOException {
         datagrams = new HashMap<>();
         server = new DatagramSocket(port);
+        server.setSoTimeout(1000);
         provider = CommandProvider.instance;
+        uploadQueue = UploadQueue.instance(server);
 
         while (!interrupted) {
+            uploadQueue.serve();
             byte[] buf = new byte[200];
             packet = new DatagramPacket(buf, 200);
-            server.receive(packet);
+            try {
+                server.receive(packet);
+            } catch (SocketTimeoutException ignored) {
+
+            }
             try {
                 processPacket(packet);
-            } catch (Exception e) {
+            } catch (Exception ignored) {
             }
         }
     }
@@ -58,6 +68,8 @@ public final class Server {
         System.out.println(address + " > " + current + " / " + total);
         if (type == Types.PACKET) {
             sendAck(address, data);
+        } else if (type == Types.ACKNOWLEDGE) {
+            uploadQueue.pop(packet);
         }
 
         if (current == 0) {

@@ -91,7 +91,7 @@ public class UploadCommand implements ClientCommand {
 
     private void prepareResources(DatagramSocket client, String command) throws Exception {
         fileName = command.split(" ")[1];
-        File file = new File("lab-3/client" + File.separator + fileName);
+        File file = new File("client" + File.separator + fileName);
         try {
             input = new FileInputStream(file);
         } catch (FileNotFoundException e) {
