@@ -22,7 +22,7 @@ import java.util.List;
 public class DownloadCommand implements ServerCommand {
     private String fileName;
     private FileInputStream input;
-    private short length;
+    private long length;
     private UploadQueue uploadQueue;
 
     @Override
@@ -75,6 +75,6 @@ public class DownloadCommand implements ServerCommand {
         } catch (FileNotFoundException e) {
             throw new Exception(e);
         }
-        length = (short) input.available();
+        length = input.available();
     }
 }

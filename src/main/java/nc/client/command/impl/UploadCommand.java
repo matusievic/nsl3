@@ -1,8 +1,10 @@
 package nc.client.command.impl;
 
+import com.sun.xml.internal.ws.api.message.Packet;
 import nc.client.command.ClientCommand;
 import nc.client.command.CommandProvider;
 import nc.util.AckListener;
+import nc.util.BitOps;
 import nc.util.DataBuilder;
 import nc.util.Operations;
 import nc.util.PacketConf;
@@ -15,6 +17,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,7 +29,7 @@ public class UploadCommand implements ClientCommand {
     private Map<Short, DatagramPacket> output;
     private AtomicInteger window;
     private AckListener ackListener;
-    private short length;
+    private long length;
     private long startTime;
 
     @Override
@@ -82,8 +85,8 @@ public class UploadCommand implements ClientCommand {
     private void resendPackets(DatagramSocket client) throws IOException {
         for (DatagramPacket packet : output.values()) {
             byte[] datagram = packet.getData();
-            short current = (short) (datagram[1] << 8 | datagram[2]);
-            short total = (short) (datagram[3] << 8 | datagram[4]);
+            short current = BitOps.byteToShort(Arrays.copyOfRange(datagram, PacketConf.currentOffset, PacketConf.currentOffset + 2));
+            short total = BitOps.byteToShort(Arrays.copyOfRange(datagram, PacketConf.totalOffset, PacketConf.totalOffset + 2));
             client.send(packet);
             System.out.println("\tresending " + current + " / " + total);
         }
@@ -98,7 +101,7 @@ public class UploadCommand implements ClientCommand {
             System.out.println("RESPONSE > File not found");
             throw new Exception(e);
         }
-        length = (short) input.available();
+        length = input.available();
         startTime = System.nanoTime();
 
         output = Collections.synchronizedMap(new HashMap<>(WindowConfig.size));

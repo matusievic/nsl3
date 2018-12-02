@@ -37,14 +37,14 @@ public final class Server {
     public void run() throws IOException {
         datagrams = new HashMap<>();
         server = new DatagramSocket(port);
-        server.setSoTimeout(1000);
+        server.setSoTimeout(3000);
         provider = CommandProvider.instance;
         uploadQueue = UploadQueue.instance(server);
 
         while (!interrupted) {
             uploadQueue.serve();
-            byte[] buf = new byte[200];
-            packet = new DatagramPacket(buf, 200);
+            byte[] buf = new byte[PacketConf.size];
+            packet = new DatagramPacket(buf, buf.length);
             try {
                 server.receive(packet);
             } catch (SocketTimeoutException ignored) {
