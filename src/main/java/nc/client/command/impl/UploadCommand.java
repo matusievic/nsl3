@@ -61,7 +61,7 @@ public class UploadCommand implements ClientCommand {
     }
 
     private DatagramPacket createInitPacket(short total) {
-        byte[] initData = DataBuilder.build(Operations.UPLOAD, Types.PACKET, 0, total, (fileName + "\n").getBytes());
+        byte[] initData = DataBuilder.build(Operations.UPLOAD, Types.PACKET, 0, total, fileName.getBytes());
         return new DatagramPacket(initData, PacketConf.size, CommandProvider.address, CommandProvider.port);
     }
 

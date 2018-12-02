@@ -37,7 +37,7 @@ public final class Server {
     public void run() throws IOException {
         datagrams = new HashMap<>();
         server = new DatagramSocket(port);
-        server.setSoTimeout(3000);
+        server.setSoTimeout(300);
         provider = CommandProvider.instance;
         uploadQueue = UploadQueue.instance(server);
 
